@@ -6,7 +6,6 @@ from tqdm import tqdm
 
 class PointProcessDataset(Dataset):
     def __init__(self, data, time_step=20):
-        # 确保数据是按时间排序的
         self.data = data
         self.time_step = time_step
         
@@ -14,13 +13,9 @@ class PointProcessDataset(Dataset):
         return len(self.data) - self.time_step
         
     def __getitem__(self, idx):
-        # 获取时间序列窗口
         history = self.data[idx:idx+self.time_step].reshape(-1, 1)
         next_time = self.data[idx+self.time_step]
-        
-        # 计算时间差（elapsed time）
         elapsed = next_time - history[-1, 0]
-        
         return {
             'history': torch.FloatTensor(history),
             'elapsed': torch.FloatTensor([elapsed])
@@ -32,24 +27,19 @@ class GRUPointProcess(nn.Module):
         self.time_step = time_step
         self.size_gru = size_gru
         self.size_nn = size_nn
-        
         self.gru = nn.GRU(
             input_size=1,
             hidden_size=size_gru,
-            num_layers=1,
+            num_layers=5,
             batch_first=True
         )
-        
         self.elapsed_time_linear = nn.Linear(1, size_nn, bias=False)
         self.gru_linear = nn.Linear(size_gru, size_nn)
-        
         self.hidden_layers = nn.ModuleList([
             nn.Linear(size_nn, size_nn)
             for _ in range(size_layer_chfn-1)
         ])
-        
         self.output_layer = nn.Linear(size_nn, 1)
-        
         self.apply(self._init_weights)
         
     def _init_weights(self, module):
@@ -76,6 +66,7 @@ class GRUPointProcess(nn.Module):
         Int_l = F.softplus(self.output_layer(hidden)) + 1e-6
         
         try:
+            # l = torch.autograd.grad(Int_l.sum(), elapsed_time, create_graph=True)[0]
             l = torch.autograd.grad(Int_l.sum(), elapsed_time, create_graph=True)[0]
             l = torch.clamp(l, min=1e-6, max=1e6)
         except RuntimeError:
