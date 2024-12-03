@@ -126,5 +126,5 @@ def train_model(model, train_loader, test_loader=None, num_epochs=10, learning_r
         
         scheduler.step(avg_train_loss)
         
-        if (epoch + 1) % 5 == 0:
-            torch.save(model.state_dict(), f'gru_point_process_epoch_{epoch+1}.pt')
+        # if (epoch + 1) % 5 == 0:
+        #     torch.save(model.state_dict(), f'gru_point_process_epoch_{epoch+1}.pt')
